@@ -6,9 +6,10 @@
     group: vagrant
     mode: 0775
     recurse: yes
+  when: sync_repo or koha_git_repo_clone
 - name: Koha source | Clone repository
   git:
     repo: "{{ koha_git_repo }}"
     dest: "{{ koha_dir }}"
     version: "{{ koha_git_branch }}"
-  when: not sync_repo
+  when: not sync_repo and koha_git_repo_clone
