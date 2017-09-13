@@ -56,17 +56,13 @@ Vagrant.configure(2) do |config|
     puts "Run 'vagrant plugin install vagrant-cachier' to speed up provisioning."
   end
 
-  # Default to host's ansible
-  provisioner = :ansible
-  local_ansible = false
-
-  if ENV['LOCAL_ANSIBLE'] or OS.windows?
-    local_ansible = true
-  end
-
   config.vm.hostname = "kohadevbox"
   if OS.windows?
-    config.vm.synced_folder ".", "/vagrant", type: "virtualbox"
+    if ENV['SMB']
+      config.vm.synced_folder ".", "/vagrant", type: "smb"
+    else
+      config.vm.synced_folder ".", "/vagrant", type: "virtualbox"
+    end
   end
 
   config.vm.define "stretch", autostart: false do |stretch|
@@ -110,8 +106,12 @@ Vagrant.configure(2) do |config|
       unless Vagrant.has_plugin?("vagrant-vbguest")
         raise 'The vagrant-vbguest plugin is not present, and is mandatory for SYNC_REPO on Windows! See README.md'
       end
-
-      config.vm.synced_folder sync_repo_dir, vconfig['koha_dir'], type: "virtualbox"
+    
+      if ENV['SMB']
+        config.vm.synced_folder sync_repo_dir, vconfig['koha_dir'], type: "smb"
+      else
+        config.vm.synced_folder sync_repo_dir, vconfig['koha_dir'], type: "virtualbox"
+      end
 
     else
       # We should safely rely on NFS
@@ -119,23 +119,54 @@ Vagrant.configure(2) do |config|
     end
   end
 
+  if ENV['SYNC_KOHADOCS']
+    if OS.windows?
+      unless Vagrant.has_plugin?("vagrant-vbguest")
+        raise 'The vagrant-vbguest plugin is not present, and is mandatory for SYNC_KOHADOCS on Windows! See README.md'
+      end
+
+      if ENV['SMB']
+        config.vm.synced_folder ENV['SYNC_KOHADOCS'], vconfig['kohadocs_dir'], type: "smb"
+      else
+        config.vm.synced_folder ENV['SYNC_KOHADOCS'], vconfig['kohadocs_dir'], type: "virtualbox"
+      end
+
+    else
+      # We should safely rely on NFS
+      config.vm.synced_folder ENV['SYNC_KOHADOCS'], vconfig['kohadocs_dir'], type: "nfs"
+    end
+  end
+
   if ENV['PLUGIN_REPO']
+
+    plugin_dir = vconfig['home_dir'] + "/koha_plugin"
+
     if OS.windows?
       unless Vagrant.has_plugin?("vagrant-vbguest")
         raise 'The vagrant-vbguest plugin is not present, and is mandatory for PLUGIN_REPO on Windows! See README.md'
       end
 
-      config.vm.synced_folder ENV['PLUGIN_REPO'], "/home/vagrant/koha_plugin", type: "virtualbox"
+      if ENV['SMB']
+        config.vm.synced_folder ENV['PLUGIN_REPO'], plugin_dir, type: "smb"
+      else
+        config.vm.synced_folder ENV['PLUGIN_REPO'], plugin_dir, type: "virtualbox"
+      end
 
     else
       # We should safely rely on NFS
-      config.vm.synced_folder ENV['PLUGIN_REPO'], "/home/vagrant/koha_plugin", type: "nfs"
+      config.vm.synced_folder ENV['PLUGIN_REPO'], plugin_dir, type: "nfs"
     end
   end
 
-  if local_ansible
-    provisioner = :ansible_local
-    config.vm.provision :shell, path: "tools/install-ansible.sh"
+  # The default is to run Ansible on the host OS
+  local_ansible = false
+  provisioner   = :ansible
+
+  if ENV['LOCAL_ANSIBLE'] or OS.windows?
+    # Windows host, or we got explicitly requested
+    # running ansible on the guest OS
+    local_ansible = true
+    provisioner   = "ansible_local"
   end
 
   config.vm.provision provisioner do |ansible|
@@ -149,6 +180,10 @@ Vagrant.configure(2) do |config|
       ansible.extra_vars.merge!({ sync_repo: true });
     end
 
+    if ENV['SYNC_KOHADOCS']
+      ansible.extra_vars.merge!({ sync_kohadocs: true });
+    end
+
     if ENV['KOHA_ELASTICSEARCH']
       ansible.extra_vars.merge!({ elasticsearch: true });
     end
@@ -158,11 +193,11 @@ Vagrant.configure(2) do |config|
     end
 
     ansible.playbook = "site.yml"
+
     if local_ansible
-      ## Special variables needed for :ansible_local go here
-      # We install our own ansible, which is newer
-      ansible.install  = false
+      ansible.install_mode = "pip"
     end
+
   end
 
   config.vm.post_up_message = "Welcome to KohaDevBox!\nSee https://github.com/digibib/kohadevbox for details"

@@ -110,10 +110,16 @@ at these addresses:
 * http://localhost:8080/ Public interface (Apache)
 * http://localhost:8081/ Staff interface (Apache)
 
-Until issue #2 has been fixed, you need to log in to the Web UI with the
-database user. It defaults to login: `koha_kohadev` and password: `password`
+By default, on the staff interface, it will launch the web installer. You can follow the install
+wizzard. The required credentials (DB user and password) default to `koha_kohadev` and password
+respectively.
 
-This can be changed before spinning the new box in user.yml.
+You can change the default password on your *vars/user.yml* file before spinning the new box:
+
+```
+  # koha_db_password: password
+  koha_db_password: your_favourite_password
+```
 
 To log into the newly created box:
 
@@ -137,8 +143,17 @@ To destroy the box and all its contents:
 
 ## Aliases
 
-Some aliases are provided to help reduce typing:
+KohaDevBox ships some aliases to improve productivity. They are divided in two,
+depending on the user in which the alias is defined.
 
+Aliases for the *instance* user require that you start a shell with that user in
+order to be used. This is done like this:
+
+```
+  $ sudo koha-shell kohadev
+```
+
+### **vagrant** user
 * koha-intra-err - tail the intranet error log
 * koha-opac-err - tail the OPAC error log
 * koha-plack-log - tail the Plack access log
@@ -154,6 +169,32 @@ Some aliases are provided to help reduce typing:
                     * update the debian files
                     * copy the plack configuration file
                     * restart plack
+
+### **kohadev** user
+* **qa**: Run the QA scripts on the current branch. For example: *qa -c 2 -v 2*
+* **prove_debug**: Run the *prove* command with all parameters needed for starting
+  a remote debugging session.
+
+## Kohadevbox on Windows
+
+Running kohadevbox on Windows requires the use of a native Windows feature called
+Samba (usually written as its acronym "SMB" or "smb"). On Windows, after running
+`vagrant up` you will be prompted for your Windows username and password.
+
+In order for SMB functionality to work on Vagrant, [PowerShell 5 is required](https://www.microsoft.com/en-us/download/details.aspx?id=50395).
+
+PowerShell's version can be checked with the following command after opening PowerShell:
+
+```
+  PS C:\> $PSVersionTable.PSVersion
+```
+
+### **Default PowerShell version by Windows version**
+
+* Windows 7   - PowerShell 2.0
+* Windows 8   - PowerShell 3.0
+* Windows 8.1 - PowerShell 4.0
+* Windows 10  - PowerShell 5.0
 
 ## Environment variables
 
@@ -220,6 +261,24 @@ the plugin is not present and SYNC_REPO is set, it will fail with an error.
    ```
    export SYNC_REPO="c:\\Users\\Me\\kohaclone\\"
    ```
+* UPDATE: Windows also supports paths with forward slash so it's possible to use:
+   ```
+   export SYNC_REPO="c:/Users/Me/kohaclone/"
+   ```
+
+### SMB
+
+Value: 1
+
+Usage:
+
+```
+  $ SMB=1 SYNC_REPO="/home/me/kohaclone" vagrant up
+```
+
+If you are running on Windows and you have administrative privileges on the computer
+and you wish to make use of the SYNC_REPO functionality, enable the SMB variable in
+order to use SYNC_REPO.
 
 ### SKIP_WEBINSTALLER
 
@@ -289,9 +348,22 @@ Usage:
 ```
 
 You can use PLUGIN_REPO to have Vagrant mount your Koha plugin development directory within
-KohaDevBox. This way you will have your working directory mounted on */home/vagrant/koha_plugin*
+KohaDevBox. This way you will have your working directory mounted on *{{ home_dir }}/koha_plugin*
 which can be configured in */etc/koha/sites/kohadev/koha-conf.xml* so the dev instance points
 to it (TODO: once bug 15879 is pushed, explain how to set multiple *koha_plugin_dir* entries).
+
+### SYNC_KOHADOCS
+
+Value: The path to an existing *kohadocs* repository clone.
+
+Usage:
+
+```
+  $ SYNC_KOHADOCS="/home/me/kohadocs_clone" vagrant up
+```
+
+You can use SYNC_KOHADOCS to specify an external directory to be mounted instead of cloning the
+*kohadocs* repository inside the box. The same as *SYNC_REPO*, but for kohadocs.
 
 # Working on patches
 

@@ -5,25 +5,25 @@
   - name: Environment | Set git user configuration
     template:
       src: gitconfig.j2
-      dest: /home/vagrant/.gitconfig
-      owner: vagrant
-      group: vagrant
+      dest: "{{ home_dir }}/.gitconfig"
+      owner: "{{ user }}"
+      group: "{{ group }}"
       mode: 0644
 
   - name: Environment | Set Bash configuration
     template:
       src: bashrc.j2
-      dest: /home/vagrant/.bashrc
-      owner: vagrant
-      group: vagrant
+      dest: "{{ home_dir }}/.bashrc"
+      owner: "{{ user }}"
+      group: "{{ group }}"
       mode: 0644
 
   - name: Environment | Set some Bash aliases
     template:
       src: bash_aliases.j2
-      dest: /home/vagrant/.bash_aliases
-      owner: vagrant
-      group: vagrant
+      dest: "{{ home_dir }}/.bash_aliases"
+      owner: "{{ user }}"
+      group: "{{ group }}"
       mode: 0644
 
   - name: Environment | Set up vimrc
@@ -34,21 +34,21 @@
       mode: 0644
     become: yes
 
-  - name: Environment | Copy public ssh key from host to vagrant
+  - name: Environment | Copy public ssh key from host to {{ user }}
     copy:
       src: ~/.ssh/id_rsa.pub
-      dest: /home/vagrant/.ssh/id_rsa.pub
-      owner: vagrant
-      group: vagrant
+      dest: "{{ home_dir }}/.ssh/id_rsa.pub"
+      owner: "{{ user }}"
+      group: "{{ group }}"
       mode: 0600
     when: ssh_key_from_host
 
-  - name: Environment | Copy private ssh key from host to vagrant
+  - name: Environment | Copy private ssh key from host to {{ user }}
     copy:
       src: ~/.ssh/id_rsa
-      dest: /home/vagrant/.ssh/id_rsa
-      owner: vagrant
-      group: vagrant
+      dest: "{{ home_dir }}/.ssh/id_rsa"
+      owner: "{{ user }}"
+      group: "{{ group }}"
       mode: 0600
     when: ssh_key_from_host
 
